@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Territorial Advanced</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameContainer {
+            position: relative;
+            overflow: hidden;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #gridContainer {
+            position: absolute;
+            transform-origin: 0 0;
+            transition: transform 0.1s;
+        }
+
+        #grid {
+            display: grid;
+            gap: 1px;
+            background-color: #444;
+            padding: 2px;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #9E9E9E;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            position: relative;
+            color: white;
+            user-select: none;
+        }
+
+        .player {
+            background-color: #4CAF50;
+        }
+        .player[data-level="2"] { background-color: #45a049; }
+        .player[data-level="3"] { background-color: #3d8b40; }
+        .player[data-level="4"] { background-color: #357638; }
+
+        .ai-1 { background-color: #FF5722 !important; }
+        .ai-1[data-level="2"] { background-color: #E64A19; }
+        .ai-1[data-level="3"] { background-color: #BF360C; }
+        .ai-2 { background-color: #9C27B0 !important; }
+        .ai-2[data-level="2"] { background-color: #7B1FA2; }
+        .ai-2[data-level="3"] { background-color: #4A148C; }
+        .ai-3 { background-color: #607D8B !important; }
+        .ai-3[data-level="2"] { background-color: #455A64; }
+        .ai-3[data-level="3"] { background-color: #263238; }
+
+        .water {
+            background-color: #2196F3 !important;
+        }
+
+        .mountain {
+            background-color: #424242 !important;
+        }
+
+        .cost-display {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 8px;
+            text-shadow: 0 0 2px black;
+        }
+
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            max-height: 600px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        #controls.collapsed {
+            max-height: 35px;
+            overflow: hidden;
+        }
+
+        .control-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 3px;
+        }
+
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            border-radius: 3px;
+        }
+
+        #resources {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            gap: 15px;
+        }
+
+        .selected {
+            outline: 2px solid #FFD700;
+            outline-offset: -2px;
+        }
+
+        #actionButtons {
+            position: fixed;
+            display: none;
+            gap: 5px;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            z-index: 2000;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            min-width: 120px;
+        }
+
+        #upgradeBtn {
+            background-color: #2196F3;
+        }
+
+        #removeBtn {
+            background-color: #f44336;
+        }
+
+        #attackBtn {
+            background-color: #FF9800;
+        }
+
+        .cell-level {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px;
+        }
+
+        #gameOver {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 9999;
+        }
+
+        .ai-resource {
+            padding-left: 20px;
+            position: relative;
+        }
+        .ai-resource::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        .ai-1-res::before { background-color: #FF5722; }
+        .ai-2-res::before { background-color: #9C27B0; }
+        .ai-3-res::before { background-color: #607D8B; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="gridContainer">
+            <div id="grid"></div>
+        </div>
+    </div>
+    
+    <div id="controls">
+        <button onclick="toggleControls()">Toggle Settings</button>
+        <div class="control-group">
+            <label>Grid Size: <input type="number" id="gridSize" value="15" min="5" max="30"></label>
+            <label>Base Cost: <input type="number" id="baseCost" value="10" min="1" max="20"></label>
+        </div>
+        <div class="control-group">
+            <label>Start Resources: <input type="number" id="startResources" value="100" min="10" max="500"></label>
+            <label>Generate Every (ms): <input type="number" id="generateInterval" value="1000" min="100" max="5000"></label>
+        </div>
+        <div class="control-group">
+            <label>Upgrade Cost Multiplier: <input type="number" id="upgradeCostMultiplier" value="1.5" min="1" max="3" step="0.1"></label>
+            <label>Removal Refund (%): <input type="number" id="removalRefund" value="50" min="0" max="100"></label>
+        </div>
+        <div class="control-group">
+            <label>Max Tile Level: <input type="number" id="maxTileLevel" value="4" min="1" max="10"></label>
+            <label>AI Players: <input type="number" id="aiPlayers" value="1" min="0" max="3"></label>
+        </div>
+        <div class="control-group">
+            <label>AI Difficulty:
+                <select id="aiDifficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </label>
+        </div>
+        <button onclick="newGame()">New Game</button>
+    </div>
+
+    <div id="resources">
+        <div>Player: <span id="resourcesValue">100</span></div>
+        <div id="aiResources"></div>
+        <div>Max: <span id="maxResourcesValue">1000</span></div>
+    </div>
+    
+    <div id="actionButtons">
+        <button class="close-btn" onclick="hideActionButtons()">×</button>
+        <button id="upgradeBtn" class="action-btn" onclick="upgradeCell()">Upgrade (+1⛁)</button>
+        <button id="removeBtn" class="action-btn" onclick="removeCell()">Remove (50% Refund)</button>
+        <button id="attackBtn" class="action-btn" onclick="attackCell()">Attack (<span id="attackCostDisplay">0</span>)</button>
+    </div>
+
+    <div id="gameOver">
+        <h2 id="gameOverText"></h2>
+        <button onclick="newGame()">Play Again</button>
+    </div>
+
+    <script>
+        let resources = 100;
+        let maxResources = 1000;
+        let generationInterval;
+        let currentGridSize = 15;
+        let scale = 1;
+        let isDragging = false;
+        let lastX, lastY;
+        let posX = 0, posY = 0;
+        let selectedCellIndex = -1;
+        let selectedNeutralIndex = -1;
+        let currentAttackCost = 0;
+        let maxBaseCost = 20;
+        let upgradeCostMultiplier = 1.5;
+        let removalRefundPercentage = 0.5;
+        let maxTileLevel = 4;
+        let aiPlayers = [];
+        let activePlayers = new Set();
+        let playerIdCounter = 0;
+        const humanPlayerId = 0;
+
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const gridContainer = document.getElementById('gridContainer');
+            const rect = gridContainer.getBoundingClientRect();
+            
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const oldScale = scale;
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale = Math.min(Math.max(1, scale * delta), 5);
+
+            posX = mouseX - (mouseX - posX) * (scale / oldScale);
+            posY = mouseY - (mouseY - posY) * (scale / oldScale);
+
+            updateGridTransform();
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#controls, #resources')) return;
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            posX += e.clientX - lastX;
+            posY += e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            updateGridTransform();
+        });
+
+        document.addEventListener('mouseup', () => isDragging = false);
+
+        function updateGridTransform() {
+            const gridContainer = document.getElementById('gridContainer');
+            gridContainer.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        }
+
+        function toggleControls() {
+            const controls = document.getElementById('controls');
+            controls.classList.toggle('collapsed');
+        }
+
+        function newGame() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            clearInterval(generationInterval);
+            aiPlayers.forEach(ai => clearInterval(ai.interval));
+            aiPlayers = [];
+            activePlayers.clear();
+            playerIdCounter = 0;
+            document.getElementById('gameOver').style.display = 'none';
+
+            const aiCount = parseInt(document.getElementById('aiPlayers').value) || 0;
+            const aiDifficulty = document.getElementById('aiDifficulty').value;
+
+            // Initialize human player
+            const humanPlayer = {
+                id: humanPlayerId,
+                type: 'human',
+                color: 'player',
+                resources: parseInt(document.getElementById('startResources').value),
+                difficulty: 'human',
+                interval: null
+            };
+            activePlayers.add(humanPlayerId);
+            playerIdCounter++;
+
+            // Initialize AI players
+            const aiColors = ['ai-1', 'ai-2', 'ai-3'];
+            for (let i = 0; i < aiCount; i++) {
+                aiPlayers.push({
+                    id: playerIdCounter,
+                    type: 'ai',
+                    color: aiColors[i % aiColors.length],
+                    resources: parseInt(document.getElementById('startResources').value),
+                    difficulty: aiDifficulty,
+                    interval: null
+                });
+                activePlayers.add(playerIdCounter);
+                playerIdCounter++;
+            }
+
+            // Add AI resources display
+            const aiResourcesHTML = aiPlayers.map(ai => 
+                `<div class="ai-resource ai-${ai.id}-res">${ai.color.toUpperCase()}: <span>${ai.resources}</span></div>`
+            ).join('');
+            document.getElementById('aiResources').innerHTML = aiResourcesHTML;
+
+            currentGridSize = parseInt(document.getElementById('gridSize').value);
+            const baseCost = parseInt(document.getElementById('baseCost').value);
+            resources = humanPlayer.resources;
+            maxBaseCost = baseCost * 1.4;
+            upgradeCostMultiplier = parseFloat(document.getElementById('upgradeCostMultiplier').value);
+            removalRefundPercentage = parseFloat(document.getElementById('removalRefund').value) / 100;
+            maxTileLevel = parseInt(document.getElementById('maxTileLevel').value);
+
+            grid.style.gridTemplateColumns = `repeat(${currentGridSize}, 30px)`;
+            
+            for (let i = 0; i < currentGridSize * currentGridSize; i++) {
+                const cell = document.createElement('div');
+                const terrainRoll = Math.random();
+                
+                if (terrainRoll < 0.1) {
+                    cell.className = 'cell water';
+                    cell.dataset.owner = 'obstacle';
+                    grid.appendChild(cell);
+                    continue;
+                } else if (terrainRoll < 0.2) {
+                    cell.className = 'cell mountain';
+                    cell.dataset.owner = 'obstacle';
+                    grid.appendChild(cell);
+                    continue;
+                }
+
+                cell.className = 'cell';
+                cell.dataset.owner = 'neutral';
+                cell.dataset.resource = Math.floor(1 + Math.random() * 5);
+                const cost = Math.floor(baseCost * (0.8 + Math.random() * 0.4));
+                cell.dataset.cost = cost;
+
+                const costDisplay = document.createElement('div');
+                costDisplay.className = 'cost-display';
+                costDisplay.textContent = cost;
+                const hue = 120 - (cost / maxBaseCost) * 120;
+                costDisplay.style.color = `hsl(${Math.min(hue, 120)}, 100%, 50%)`;
+                cell.appendChild(costDisplay);
+                
+                cell.addEventListener('click', () => handleTileClick(i));
+                grid.appendChild(cell);
+            }
+
+            // Initialize starting positions
+            const players = [humanPlayer, ...aiPlayers];
+            players.forEach((player, index) => {
+                const pos = getStartPosition(index, players.length);
+                const cell = grid.children[pos];
+                cell.className = `cell ${player.color}`;
+                cell.dataset.owner = player.id;
+                cell.dataset.resource = 1;
+                cell.dataset.level = 1;
+                const levelDisplay = document.createElement('div');
+                levelDisplay.className = 'cell-level';
+                levelDisplay.textContent = '1';
+                cell.appendChild(levelDisplay);
+            });
+
+            // Start AI intervals
+            aiPlayers.forEach(ai => {
+                const interval = setInterval(() => aiAction(ai), getAIInterval(ai.difficulty));
+                ai.interval = interval;
+            });
+
+            generationInterval = setInterval(() => {
+                players.forEach(player => {
+                    const cells = Array.from(document.querySelectorAll(`[data-owner="${player.id}"]`));
+                    player.resources += cells.reduce((sum, cell) => sum + parseInt(cell.dataset.resource), 0);
+                    player.resources = Math.min(player.resources, maxResources);
+                });
+                resources = humanPlayer.resources;
+                updateResourcesDisplay();
+                checkGameState();
+            }, parseInt(document.getElementById('generateInterval').value));
+
+            updateMaxResources();
+            updateResourcesDisplay();
+            resetView();
+        }
+
+        function getStartPosition(index, totalPlayers) {
+            const center = Math.floor(currentGridSize / 2);
+            const angle = (index * (2 * Math.PI)) / totalPlayers;
+            const radius = Math.floor(currentGridSize * 0.3);
+            const x = center + Math.floor(radius * Math.cos(angle));
+            const y = center + Math.floor(radius * Math.sin(angle));
+            return y * currentGridSize + x;
+        }
+
+        function getAIInterval(difficulty) {
+            return {
+                easy: 5000,
+                medium: 3000,
+                hard: 1500
+            }[difficulty] || 3000;
+        }
+
+        function aiAction(ai) {
+            if (!activePlayers.has(ai.id)) return;
+
+            // AI can now attack both neutral and player territories
+            const attackable = Array.from(document.querySelectorAll('.cell'))
+                .filter(cell => {
+                    const isNeutral = cell.dataset.owner === 'neutral';
+                    const isPlayer = cell.dataset.owner === humanPlayerId.toString();
+                    return (isNeutral || isPlayer) && checkAdjacentAI(cell, ai.id);
+                });
+
+            if (attackable.length > 0) {
+                attackable.sort((a, b) => a.dataset.cost - b.dataset.cost);
+                const target = attackable.find(c => {
+                    const cost = c.dataset.owner === 'neutral' ? c.dataset.cost : c.dataset.cost * 2;
+                    return cost <= ai.resources;
+                });
+
+                if (target) {
+                    const cost = target.dataset.owner === 'neutral' ? 
+                        parseInt(target.dataset.cost) : 
+                        parseInt(target.dataset.cost) * 2;
+                    
+                    ai.resources -= cost;
+                    
+                    // If attacking player territory, update player resources
+                    if (target.dataset.owner === humanPlayerId.toString()) {
+                        resources += Math.floor(cost * 0.25);
+                        updateResourcesDisplay();
+                    }
+
+                    captureCell(target, ai);
+                }
+            }
+
+            // AI upgrade logic
+            const upgradable = Array.from(document.querySelectorAll(`[data-owner="${ai.id}"]`))
+                .filter(cell => parseInt(cell.dataset.level) < maxTileLevel);
+            
+            if (upgradable.length > 0) {
+                upgradable.sort((a, b) => b.dataset.level - a.dataset.level);
+                const target = upgradable[0];
+                const upgradeCost = Math.floor(target.dataset.cost * upgradeCostMultiplier);
+                if (ai.resources >= upgradeCost) {
+                    ai.resources -= upgradeCost;
+                    upgradeCellAI(target);
+                }
+            }
+            
+            updateResourcesDisplay();
+            checkGameState();
+        }
+
+        function captureCell(cell, ai) {
+            cell.className = `cell ${ai.color}`;
+            cell.dataset.owner = ai.id;
+            cell.dataset.resource = 1;
+            cell.dataset.level = 1;
+            
+            const levelDisplay = document.createElement('div');
+            levelDisplay.className = 'cell-level';
+            levelDisplay.textContent = '1';
+            cell.appendChild(levelDisplay);
+            
+            updateMaxResources();
+        }
+
+        function upgradeCellAI(cell) {
+            const newLevel = parseInt(cell.dataset.level) + 1;
+            cell.dataset.level = newLevel;
+            cell.dataset.resource = newLevel;
+            cell.querySelector('.cell-level').textContent = newLevel;
+        }
+
+        function checkAdjacentAI(cell, aiId) {
+            const index = Array.from(cell.parentNode.children).indexOf(cell);
+            const row = Math.floor(index / currentGridSize);
+            const col = index % currentGridSize;
+            
+            return [
+                [row-1, col], [row+1, col], [row, col-1], [row, col+1]
+            ].some(([r, c]) => {
+                if (r >= 0 && r < currentGridSize && c >= 0 && c < currentGridSize) {
+                    const adjIndex = r * currentGridSize + c;
+                    return document.getElementById('grid').children[adjIndex].dataset.owner === aiId.toString();
+                }
+                return false;
+            });
+        }
+
+        function checkGameState() {
+            const playerCells = document.querySelectorAll(`[data-owner="${humanPlayerId}"]`);
+            if (playerCells.length === 0) {
+                endGame(false);
+                return;
+            }
+
+            const remainingPlayers = new Set();
+            document.querySelectorAll('.cell').forEach(cell => {
+                if (cell.dataset.owner !== 'neutral' && cell.dataset.owner !== 'obstacle') {
+                    remainingPlayers.add(cell.dataset.owner);
+                }
+            });
+
+            if (remainingPlayers.size === 1 && remainingPlayers.has(humanPlayerId.toString())) {
+                endGame(true);
+            }
+        }
+
+        function endGame(won) {
+            clearInterval(generationInterval);
+            aiPlayers.forEach(ai => clearInterval(ai.interval));
+            const gameOver = document.getElementById('gameOver');
+            gameOver.style.display = 'block';
+            document.getElementById('gameOverText').textContent = won ? 'Victory!' : 'Defeat!';
+        }
+
+        function resetView() {
+            scale = 1;
+            posX = window.innerWidth/2 - (currentGridSize * 30)/2;
+            posY = window.innerHeight/2 - (currentGridSize * 30)/2;
+            updateGridTransform();
+        }
+
+        function handleTileClick(index) {
+            const cell = document.getElementById('grid').children[index];
+            if (cell.dataset.owner === 'obstacle') return;
+            
+            hideActionButtons();
+            document.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+
+            if (cell.dataset.owner === humanPlayerId.toString()) {
+                selectPlayerTile(index);
+            } else if (cell.dataset.owner !== 'neutral' && cell.dataset.owner !== 'obstacle') {
+                selectEnemyTile(index);
+            } else if (cell.dataset.owner === 'neutral') {
+                selectNeutralTile(index);
+            }
+        }
+
+        function selectPlayerTile(index) {
+            const cell = document.getElementById('grid').children[index];
+            selectedCellIndex = index;
+            cell.classList.add('selected');
+            showActionButtons(cell, 'player');
+        }
+
+        function selectEnemyTile(index) {
+            const cell = document.getElementById('grid').children[index];
+            selectedNeutralIndex = index;
+            currentAttackCost = parseInt(cell.dataset.cost) * 2;
+            cell.classList.add('selected');
+            showActionButtons(cell, 'enemy');
+        }
+
+        function selectNeutralTile(index) {
+            const cell = document.getElementById('grid').children[index];
+            selectedNeutralIndex = index;
+            currentAttackCost = parseInt(cell.dataset.cost);
+            cell.classList.add('selected');
+            showActionButtons(cell, 'neutral');
+        }
+
+        function showActionButtons(cell, type) {
+            const rect = cell.getBoundingClientRect();
+            const actionButtons = document.getElementById('actionButtons');
+            
+            document.getElementById('upgradeBtn').style.display = type === 'player' ? 'block' : 'none';
+            document.getElementById('removeBtn').style.display = type === 'player' ? 'block' : 'none';
+            document.getElementById('attackBtn').style.display = (type === 'neutral' || type === 'enemy') ? 'block' : 'none';
+            
+            if (type === 'neutral' || type === 'enemy') {
+                document.getElementById('attackCostDisplay').textContent = currentAttackCost;
+            }
+
+            actionButtons.style.display = 'flex';
+            actionButtons.style.left = `${rect.right + 5}px`;
+            actionButtons.style.top = `${rect.top}px`;
+        }
+
+        function attackCell() {
+            if (selectedNeutralIndex === -1) return;
+            const cell = document.getElementById('grid').children[selectedNeutralIndex];
+            
+            if (!checkAdjacent(selectedNeutralIndex)) {
+                alert('Must be adjacent to owned territory!');
+                return;
+            }
+
+            if (resources < currentAttackCost) {
+                alert('Not enough resources!');
+                return;
+            }
+
+            resources -= currentAttackCost;
+            
+            // If attacking another player, update their resources
+            if (cell.dataset.owner !== 'neutral') {
+                const previousOwner = aiPlayers.find(ai => ai.id.toString() === cell.dataset.owner);
+                if (previousOwner) {
+                    previousOwner.resources += Math.floor(currentAttackCost * 0.25);
+                }
+            }
+
+            cell.className = 'cell player';
+            cell.dataset.owner = humanPlayerId;
+            cell.dataset.resource = 1;
+            cell.dataset.level = 1;
+            
+            const levelDisplay = document.createElement('div');
+            levelDisplay.className = 'cell-level';
+            levelDisplay.textContent = '1';
+            cell.appendChild(levelDisplay);
+            
+            updateMaxResources();
+            updateResourcesDisplay();
+            hideActionButtons();
+        }
+
+        function checkAdjacent(index) {
+            const row = Math.floor(index / currentGridSize);
+            const col = index % currentGridSize;
+            
+            return [
+                [row-1, col], [row+1, col], [row, col-1], [row, col+1]
+            ].some(([r, c]) => {
+                if (r >= 0 && r < currentGridSize && c >= 0 && c < currentGridSize) {
+                    const adjIndex = r * currentGridSize + c;
+                    return document.getElementById('grid').children[adjIndex].dataset.owner === humanPlayerId.toString();
+                }
+                return false;
+            });
+        }
+
+        function updateResourcesDisplay() {
+            document.getElementById('resourcesValue').textContent = Math.floor(resources);
+            document.getElementById('maxResourcesValue').textContent = maxResources;
+            
+            // Update AI resources display
+            aiPlayers.forEach(ai => {
+                const element = document.querySelector(`.ai-${ai.id}-res`);
+                if (element) element.textContent = Math.floor(ai.resources);
+            });
+        }
+
+        function updateMaxResources() {
+            const playerCells = document.querySelectorAll(`[data-owner="${humanPlayerId}"]`).length;
+            maxResources = playerCells * 1000;
+        }
+
+        function upgradeCell() {
+            if (selectedCellIndex === -1) return;
+            
+            const cell = document.getElementById('grid').children[selectedCellIndex];
+            const currentLevel = parseInt(cell.dataset.level);
+            if (currentLevel >= maxTileLevel) return;
+
+            const upgradeCost = Math.floor(cell.dataset.cost * upgradeCostMultiplier);
+            if (resources < upgradeCost) return;
+
+            resources -= upgradeCost;
+            const newLevel = currentLevel + 1;
+            
+            cell.dataset.level = newLevel;
+            cell.dataset.resource = newLevel;
+            cell.dataset.cost = Math.floor(cell.dataset.cost * 2);
+            cell.querySelector('.cell-level').textContent = newLevel;
+            cell.style.backgroundColor = getLevelColor(newLevel);
+            
+            const costDisplay = cell.querySelector('.cost-display');
+            costDisplay.textContent = cell.dataset.cost;
+            const hue = 120 - (cell.dataset.cost / maxBaseCost) * 120;
+            costDisplay.style.color = `hsl(${Math.min(hue, 120)}, 100%, 50%)`;
+            
+            updateResourcesDisplay();
+            hideActionButtons();
+        }
+
+        function getLevelColor(level) {
+            const colors = {
+                1: '#4CAF50',
+                2: '#45a049',
+                3: '#3d8b40',
+                4: '#357638'
+            };
+            return colors[level];
+        }
+
+        function removeCell() {
+            if (selectedCellIndex === -1) return;
+            const cell = document.getElementById('grid').children[selectedCellIndex];
+            
+            const initialCost = parseInt(cell.dataset.cost);
+            const refund = initialCost * removalRefundPercentage;
+            
+            resources += refund;
+            
+            cell.className = 'cell';
+            cell.style.backgroundColor = '#9E9E9E';
+            cell.dataset.owner = 'neutral';
+            cell.dataset.resource = Math.floor(1 + Math.random() * 5);
+            cell.removeAttribute('data-level');
+            cell.querySelector('.cell-level')?.remove();
+            
+            const baseCost = parseInt(document.getElementById('baseCost').value);
+            const newCost = Math.floor(baseCost * (0.8 + Math.random() * 0.4));
+            cell.dataset.cost = newCost;
+            
+            const costDisplay = document.createElement('div');
+            costDisplay.className = 'cost-display';
+            costDisplay.textContent = newCost;
+            const hue = 120 - (newCost / maxBaseCost) * 120;
+            costDisplay.style.color = `hsl(${Math.min(hue, 120)}, 100%, 50%)`;
+            cell.appendChild(costDisplay);
+            
+            cell.addEventListener('click', () => handleTileClick(selectedCellIndex));
+            
+            updateMaxResources();
+            updateResourcesDisplay();
+            hideActionButtons();
+        }
+
+        function hideActionButtons() {
+            document.getElementById('actionButtons').style.display = 'none';
+            selectedCellIndex = -1;
+            selectedNeutralIndex = -1;
+            document.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.cell, #actionButtons')) {
+                hideActionButtons();
+            }
+        });
+
+        newGame();
+        window.addEventListener('resize', resetView);
+    </script>
+</body>
+</html>
